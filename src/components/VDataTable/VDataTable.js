@@ -1,62 +1,43 @@
-import '../../stylus/components/_tables.styl'
-import '../../stylus/components/_data-table.styl'
-
-import DataIterable from '../../mixins/data-iterable'
-
-import Head from './mixins/head'
-import Body from './mixins/body'
-import Foot from './mixins/foot'
-import Progress from './mixins/progress'
-
-import {
-  createSimpleFunctional,
-  getObjectValueByPath
-} from '../../util/helpers'
-
-// Importing does not work properly
-const VTableOverflow = createSimpleFunctional('v-table__overflow')
+import VDataIterator from '../VDataIterator'
+import VCellCheckbox from './VCellCheckbox'
+import VPagination from '../VPagination'
 
 export default {
   name: 'v-data-table',
-
-  data () {
-    return {
-      actionsClasses: 'v-datatable__actions',
-      actionsRangeControlsClasses: 'v-datatable__actions__range-controls',
-      actionsSelectClasses: 'v-datatable__actions__select',
-      actionsPaginationClasses: 'v-datatable__actions__pagination'
-    }
-  },
-
-  mixins: [DataIterable, Head, Body, Foot, Progress],
-
+  inheritAttrs: false,
   props: {
-    headers: {
+    columns: {
       type: Array,
-      default: () => []
+      default: () => ([])
     },
-    headerText: {
-      type: String,
-      default: 'text'
-    },
-    hideHeaders: Boolean,
-    rowsPerPageText: {
-      type: String,
-      default: 'Rows per page:'
-    },
-    customFilter: {
-      type: Function,
-      default: (items, search, filter, headers) => {
-        search = search.toString().toLowerCase()
-        if (search.trim() === '') return items
-
-        const props = headers.map(h => h.value)
-
-        return items.filter(item => props.some(prop => filter(getObjectValueByPath(item, prop), search)))
-      }
+    showSelectAll: {
+      type: Boolean
     }
   },
+  methods: {
+    genSelectAll (h, props) {
+      return h(VCellCheckbox, {
+        attrs: {
+          inputValue: props.everyItem,
+          indeterminate: !props.everyItem && props.someItems
+        },
+        on: {
+          change: props.toggleSelected
+        }
+      })
+    },
+    genHeaders (h, props) {
+      const columns = this.columns.map(c => {
+        const align = c.align || 'text-xs-left'
 
+        return h('div', {
+          staticClass: [align],
+        }, [c.text])
+      })
+
+      if (this.showSelectAll) columns.unshift(this.genSelectAll(h, props))
+
+<<<<<<< HEAD
   computed: {
     classes () {
       return {
@@ -65,50 +46,56 @@ export default {
         'theme--dark': this.dark,
         'theme--light': this.light
       }
+=======
+      return h('div', {
+        staticClass: 'd-flex',
+      }, columns)
+>>>>>>> refactor: prototyping stuff
     },
-    filteredItems () {
-      return this.filteredItemsImpl(this.headers)
-    },
-    headerColumns () {
-      return this.headers.length + (this.selectAll !== false)
+    genFooters (h, props) {
+      return h(VPagination, {
+        props: {
+          value: props.page,
+          length: props.pageCount
+        },
+        on: {
+          input: v => props.page = v
+        }
+      })
     }
   },
-
-  methods: {
-    hasTag (elements, tag) {
-      return Array.isArray(elements) && elements.find(e => e.tag === tag)
-    },
-    genTR (children, data = {}) {
-      return this.$createElement('tr', data, children)
-    }
-  },
-
-  created () {
-    const firstSortable = this.headers.find(h => (
-      !('sortable' in h) || h.sortable)
-    )
-
-    this.defaultPagination.sortBy = !this.disableInitialSort && firstSortable
-      ? firstSortable.value
-      : null
-
-    this.initPagination()
-  },
-
   render (h) {
-    const tableOverflow = h(VTableOverflow, {}, [
-      h('table', {
-        'class': this.classes
-      }, [
-        this.genTHead(),
-        this.genTBody(),
-        this.genTFoot()
-      ])
-    ])
+    const children = []
 
-    return h('div', [
-      tableOverflow,
-      this.genActionsFooter()
-    ])
+    const scopedSlots = {
+      header: props => this.genHeaders(h, props),
+      footer: props => this.genFooters(h, props)
+    }
+
+    if (this.$scopedSlots.item) {
+      scopedSlots['item'] = props => this.$scopedSlots.item(props)
+    }
+
+    // TODO: Is there a cleaner way of doing this?
+    // That preferrably does not wrap slot in an extra div
+    // Not sure why simply doing children.push(...this.$slots.whatever) is not working
+    const slotKeys = Object.keys(this.$slots)
+    const slots = slotKeys.map(key => {
+      return this.$slots[key].map(vnode => {
+        return h('div', {
+          slot: key
+        }, [vnode])
+      })
+    })
+
+    children.push(slots)
+
+    return h(VDataIterator, {
+      props: {
+        classPrefix: 'v-data-table',
+        ...this.$attrs
+      },
+      scopedSlots
+    }, children)
   }
 }
