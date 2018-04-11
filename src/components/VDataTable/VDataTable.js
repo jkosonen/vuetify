@@ -1,10 +1,10 @@
 import VDataIterator from '../VDataIterator'
-import VCellCheckbox from './VCellCheckbox'
-import VPagination from '../VPagination'
+import VTableHeader from './VTableHeader'
+import VTablePagination from './VTablePagination'
 
 export default {
   name: 'v-data-table',
-  inheritAttrs: false,
+  extends: VDataIterator,
   props: {
     columns: {
       type: Array,
@@ -12,90 +12,57 @@ export default {
     },
     showSelectAll: {
       type: Boolean
+    },
+    hidePagination: {
+      type: Boolean
+    },
+    hideHeader: {
+      type: Boolean
     }
   },
   methods: {
-    genSelectAll (h, props) {
-      return h(VCellCheckbox, {
-        attrs: {
-          inputValue: props.everyItem,
-          indeterminate: !props.everyItem && props.someItems
-        },
-        on: {
-          change: props.toggleSelected
-        }
-      })
-    },
-    genHeaders (h, props) {
-      const columns = this.columns.map(c => {
-        const align = c.align || 'text-xs-left'
+    genHeaders (h) {
+      const headers = this.computeSlots('header')
 
-        return h('div', {
-          staticClass: [align],
-        }, [c.text])
-      })
-
-      if (this.showSelectAll) columns.unshift(this.genSelectAll(h, props))
-
-<<<<<<< HEAD
-  computed: {
-    classes () {
-      return {
-        'v-datatable v-table': true,
-        'v-datatable--select-all': this.selectAll !== false,
-        'theme--dark': this.dark,
-        'theme--light': this.light
+      if (!this.hideHeader) {
+        headers.push(h(VTableHeader, {
+          props: {
+            columns: this.columns,
+            showSelectAll: this.showSelectAll,
+            everyItem: this.everyItem,
+            someItems: this.someItems
+          },
+          on: {
+            'update:sortBy': v => this.sorting.sortBy = v,
+            'update:sortDesc': v => this.sorting.sortDesc = v,
+            'toggleSelectAll': () => this.selectAll(!this.everyItem)
+          }
+        }))
       }
-=======
-      return h('div', {
-        staticClass: 'd-flex',
-      }, columns)
->>>>>>> refactor: prototyping stuff
+
+      return headers
     },
-    genFooters (h, props) {
-      return h(VPagination, {
-        props: {
-          value: props.page,
-          length: props.pageCount
-        },
-        on: {
-          input: v => props.page = v
-        }
-      })
+    genFooters (h) {
+      const footers = this.computeSlots('footer')
+
+      if (!this.hidePagination) {
+        footers.push(h(VTablePagination, {
+          props: {
+            itemsLength: this.itemsLength,
+            pageStart: this.pageStart,
+            pageStop: this.pageStop,
+            page: this.pagination.page,
+            rowsPerPage: this.pagination.rowsPerPage,
+            rowsPerPageItems: this.rowsPerPageItems
+          },
+          on: {
+            'update:page': v => this.pagination.page = v,
+            'update:rowsPerPage': v => this.pagination.rowsPerPage = v
+          }
+        }))
+      }
+
+      return footers
     }
-  },
-  render (h) {
-    const children = []
-
-    const scopedSlots = {
-      header: props => this.genHeaders(h, props),
-      footer: props => this.genFooters(h, props)
-    }
-
-    if (this.$scopedSlots.item) {
-      scopedSlots['item'] = props => this.$scopedSlots.item(props)
-    }
-
-    // TODO: Is there a cleaner way of doing this?
-    // That preferrably does not wrap slot in an extra div
-    // Not sure why simply doing children.push(...this.$slots.whatever) is not working
-    const slotKeys = Object.keys(this.$slots)
-    const slots = slotKeys.map(key => {
-      return this.$slots[key].map(vnode => {
-        return h('div', {
-          slot: key
-        }, [vnode])
-      })
-    })
-
-    children.push(slots)
-
-    return h(VDataIterator, {
-      props: {
-        classPrefix: 'v-data-table',
-        ...this.$attrs
-      },
-      scopedSlots
-    }, children)
   }
 }
