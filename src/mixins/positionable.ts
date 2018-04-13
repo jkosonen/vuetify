@@ -11,6 +11,7 @@ const props = {
   top: Boolean
 }
 type props = Record<keyof typeof props, boolean>
+// type props = typeof props
 
 type someProps<S extends keyof props> = { [P in S]: props[P] }
 type Positionable<S extends keyof props> = ExtendedVue<Vue, {}, {}, {}, someProps<S>>

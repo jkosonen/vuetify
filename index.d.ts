@@ -1,6 +1,11 @@
 import 'vuetify/src/util/helpers'
 import 'vuetify/src/util/colors'
-import Vue, { PluginFunction } from 'vue'
+import Vue, { PluginFunction, PluginObject } from 'vue'
+
+declare module 'vuetify/es5/components/*' {
+  const C: PluginObject<never>
+  export default C
+}
 
 declare class Vuetify {
   static install: PluginFunction<never>
