@@ -39,7 +39,7 @@ export default {
     outline: Boolean,
     ripple: {
       type: [Boolean, Object],
-      default: true
+      default: null
     },
     round: Boolean,
     small: Boolean,
@@ -84,6 +84,11 @@ export default {
       return (!this.outline && !this.flat)
         ? this.addBackgroundColorClassChecks(classes)
         : this.addTextColorClassChecks(classes)
+    },
+    computedRipple () {
+      const defaultRipple = this.icon || this.fab ? { circle: true } : true
+      if (this.disabled) return false
+      else return this.ripple || defaultRipple
     }
   },
 

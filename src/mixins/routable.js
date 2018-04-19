@@ -25,6 +25,12 @@ export default {
     target: String
   },
 
+  computed: {
+    computedRipple () {
+      return (this.ripple && !this.disabled) ? this.ripple : false
+    }
+  },
+
   methods: {
     click () {},
     generateRouteLink () {
@@ -37,7 +43,7 @@ export default {
         props: {},
         directives: [{
           name: 'ripple',
-          value: (this.ripple && !this.disabled) ? this.ripple : false
+          value: this.computedRipple
         }],
         [this.to ? 'nativeOn' : 'on']: {
           ...this.$listeners,
