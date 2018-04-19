@@ -1,6 +1,10 @@
-function style (el, value) {
+function transform (el, value) {
   el.style['transform'] = value
   el.style['webkitTransform'] = value
+}
+
+function opacity (el, value) {
+  el.style['opacity'] = value
 }
 
 const ripple = {
@@ -9,6 +13,7 @@ const ripple = {
    * @param {Element} el
    * @param {{ class?: string, center?: boolean }} [value={}]
    */
+  /* eslint-disable max-statements */
   show: (e, el, value = {}) => {
     if (!el._ripple || !el._ripple.enabled) {
       return
@@ -24,29 +29,49 @@ const ripple = {
       container.className += ` ${value.class}`
     }
 
-    const size = el.clientWidth > el.clientHeight
-      ? el.clientWidth
-      : el.clientHeight
+    const offset = el.getBoundingClientRect()
+    const localX = e.clientX - offset.left
+    const localY = e.clientY - offset.top
+
+    let radius = 0, scale = 0.3
+    if (el._ripple.circle) {
+      scale = 0.15
+      radius = el.clientWidth / 2
+      radius = radius + Math.sqrt((localX - radius)**2 + (localY - radius)**2) / 4
+    } else {
+      radius = Math.sqrt(el.clientWidth**2 + el.clientHeight**2) / 2
+    }
+
     animation.className = 'ripple__animation'
-    animation.style.width = `${size * (value.center ? 1 : 2)}px`
+    animation.style.width = `${radius * 2}px`
     animation.style.height = animation.style.width
 
     el.appendChild(container)
     const computed = window.getComputedStyle(el)
     if (computed.position !== 'absolute' && computed.position !== 'fixed') el.style.position = 'relative'
 
-    const offset = el.getBoundingClientRect()
-    const x = value.center ? '50%' : `${e.clientX - offset.left}px`
-    const y = value.center ? '50%' : `${e.clientY - offset.top}px`
+    const x = value.center ? '50%' : `${localX}px`
+    const y = value.center ? '50%' : `${localY}px`
+    const centerX = `${el.clientWidth / 2}px`
+    const centerY = `${el.clientHeight / 2}px`
 
     animation.classList.add('ripple__animation--enter')
     animation.classList.add('ripple__animation--visible')
-    style(animation, `translate(-50%, -50%) translate(${x}, ${y}) scale3d(0.01,0.01,0.01)`)
+    transform(animation, `translate(-50%, -50%) translate(${x}, ${y}) scale3d(${scale},${scale},${scale})`)
+    opacity(animation, 0)
     animation.dataset.activated = Date.now()
 
     setTimeout(() => {
       animation.classList.remove('ripple__animation--enter')
-      style(animation, `translate(-50%, -50%) translate(${x}, ${y})  scale3d(0.99,0.99,0.99)`)
+      animation.classList.add('ripple__animation--in')
+      transform(animation, `translate(-50%, -50%) translate(${centerX}, ${centerY}) scale3d(0.99,0.99,0.99)`)
+      opacity(animation, 0.25)
+
+      setTimeout(() => {
+        animation.classList.remove('ripple__animation--in')
+        animation.classList.add('ripple__animation--out')
+        opacity(animation, 0)
+      }, 250)
     }, 0)
   },
 
@@ -58,7 +83,7 @@ const ripple = {
     if (ripples.length === 0) return
     const animation = ripples[ripples.length - 1]
     const diff = Date.now() - Number(animation.dataset.activated)
-    let delay = 400 - diff
+    let delay = 700 - diff
 
     delay = delay < 0 ? 0 : delay
 
@@ -107,6 +132,9 @@ function updateRipple (el, binding, wasEnabled) {
   }
   if (value.class) {
     el._ripple.class = binding.value.class
+  }
+  if (value.circle) {
+    el._ripple.circle = value.circle
   }
   if (enabled && !wasEnabled) {
     if ('ontouchstart' in window) {
