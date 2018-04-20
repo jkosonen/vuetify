@@ -162,3 +162,10 @@ export function filterChildren (array = [], tag) {
 export function convertToUnit (str, unit = 'px') {
   return isNaN(str) ? str : `${Number(str)}${unit}`
 }
+
+export function groupByProperty (xs, key) {
+  return xs.reduce((rv, x) => {
+    (rv[x[key]] = rv[x[key]] || []).push(x)
+    return rv
+  }, {})
+}
